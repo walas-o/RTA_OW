@@ -1,0 +1,73 @@
+﻿services:
+  producer:
+    build: .
+    container_name: parking_producer
+    command: python producer.py
+    depends_on:
+      - kafka
+    restart: on-failure
+
+  consumer:
+    build: .
+    container_name: parking_consumer
+    command: python consumer.py
+    depends_on:
+      - kafka
+      - postgres
+    restart: on-failure
+
+  trainer:
+    build: .
+    container_name: parking_trainer
+    command: python train_model.py
+    profiles:
+      - ml
+    depends_on:
+      - postgres
+    volumes:
+      - ./models:/app/models
+
+  predictor:
+    build: .
+    container_name: parking_predictor
+    command: python predict.py
+    profiles:
+      - ml
+    depends_on:
+      - postgres
+    volumes:
+      - ./models:/app/models
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: projekt_db
+    ports:
+      - "5432:5432"

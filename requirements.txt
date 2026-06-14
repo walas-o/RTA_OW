@@ -1,0 +1,9 @@
+﻿confluent-kafka
+faust-streaming
+pandas
+sqlalchemy
+psycopg2-binary
+scikit-learn
+xgboost
+requests
+joblib
